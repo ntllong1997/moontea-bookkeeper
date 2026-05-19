@@ -63,14 +63,25 @@ export async function GET() {
             .sort((a, b) => b.total - a.total)
             .slice(0, 5);
 
-        const totalRevenue = (revenueResult.data || []).reduce(
+        const revenueEntriesMonth = (revenueResult.data || []).reduce(
             (sum, r) => sum + r.amount,
             0
         );
 
+        // Revenue from bank: money-in transactions this month
+        const bankOnlineSalesMonth = (txResult.data || [])
+            .filter((t) => t.amount < 0 && t.custom_category === 'Online Sales')
+            .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+        const bankDepositsMonth = (txResult.data || [])
+            .filter((t) => t.amount < 0 && (t.custom_category === 'Deposit' || t.custom_category === 'Cash Deposit'))
+            .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
         return NextResponse.json({
             total_expenses_month: totalExpenses,
-            total_revenue_month: totalRevenue,
+            revenue_entries_month: revenueEntriesMonth,
+            bank_online_sales_month: bankOnlineSalesMonth,
+            bank_deposits_month: bankDepositsMonth,
             unmatched_transactions: unmatchedTxResult.count || 0,
             unmatched_receipts: unmatchedRxResult.count || 0,
             pending_transactions: pendingResult.count || 0,
