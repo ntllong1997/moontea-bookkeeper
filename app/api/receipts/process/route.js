@@ -39,8 +39,9 @@ export async function POST(request) {
         }
 
         // Claude vision OCR
+        const today = new Date().toISOString().split('T')[0];
         const message = await anthropic.messages.create({
-            model: process.env.RECEIPT_OCR_MODEL || 'claude-haiku-4-5-20251001',
+            model: process.env.RECEIPT_OCR_MODEL || 'claude-sonnet-4-6',
             max_tokens: 4096,
             messages: [
                 {
@@ -59,15 +60,28 @@ export async function POST(request) {
 {
   "location": "string — merchant/store name",
   "total_amount": number — final total paid after tax and tip,
-  "receipt_datetime": "ISO 8601 string — date and time of purchase, use T00:00:00 if no time visible",
+  "receipt_datetime": "ISO 8601 string — date and time of purchase",
   "payment_method_type": "visa|mastercard|amex|discover|cash|check|other",
   "payment_method_last4": "string — last 4 digits if card, else null",
-  "ai_confidence": number between 0 and 1
+  "ai_confidence": number between 0 and 1,
+  "items": [
+    {
+      "item_name": "string",
+      "quantity": number or null,
+      "unit_price": number or null,
+      "line_total": number
+    }
+  ]
 }
 Rules:
-- total_amount must be the final charged amount including tax/tip.
-- For receipt_datetime: read the date exactly as printed on the receipt. US receipts use MM/DD/YYYY or MM/DD/YY format — do NOT swap month and day. If the year is 2-digit, use the century that makes the date closest to today (${new Date().toISOString().split('T')[0]}).
-- Return ONLY raw JSON — no markdown, no code fences, no explanation.`,
+- total_amount: the final charged amount including tax and tip. Never use subtotal.
+- receipt_datetime: find the purchase date on the receipt. It may appear as MM/DD/YYYY, DD/MM/YYYY, "May 19 2026", or YYYY-MM-DD. Output as ISO 8601 (YYYY-MM-DDTHH:MM:SS). If no time is visible use T00:00:00. Use today's date (${today}) only to resolve ambiguous 2-digit years — pick the century that makes the date closest to today. Do NOT guess or invent a date.
+- items: list every line item on the receipt. If no individual items are visible, return an empty array [].
+- ai_confidence: your overall confidence (0–1) that location, total_amount, and receipt_datetime are all correct.
+- Return ONLY raw JSON — no markdown, no code fences, no explanation.
+
+Example output:
+{"location":"Blue Bottle Coffee","total_amount":14.75,"receipt_datetime":"2026-05-19T09:32:00","payment_method_type":"visa","payment_method_last4":"4242","ai_confidence":0.95,"items":[{"item_name":"Latte","quantity":1,"unit_price":6.50,"line_total":6.50},{"item_name":"Croissant","quantity":2,"unit_price":3.75,"line_total":7.50}]}`,
                         },
                     ],
                 },
@@ -100,6 +114,23 @@ Rules:
             .eq('id', receiptId);
 
         if (updateError) throw updateError;
+
+        // Insert line items (delete any stale items from a previous attempt first)
+        if (Array.isArray(extraction.items) && extraction.items.length > 0) {
+            await supabase.from('receipt_items').delete().eq('receipt_id', receiptId);
+            const { error: itemsError } = await supabase.from('receipt_items').insert(
+                extraction.items
+                    .filter((item) => item.item_name && item.line_total != null)
+                    .map((item) => ({
+                        receipt_id: receiptId,
+                        item_name: item.item_name,
+                        quantity: item.quantity ?? null,
+                        unit_price: item.unit_price ?? null,
+                        line_total: item.line_total,
+                    }))
+            );
+            if (itemsError) throw itemsError;
+        }
 
         // Run auto-match after successful OCR
         await autoMatchReceipts(supabase);
