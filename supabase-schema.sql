@@ -48,6 +48,7 @@ CREATE TABLE bank_transactions (
   account_id            text,
   amount                decimal(10,2),
   date                  date,
+  raw_name              text,
   merchant_name         text,
   category              text[],
   pending               boolean DEFAULT false,
@@ -74,7 +75,17 @@ CREATE TABLE revenue_entries (
   created_at  timestamptz DEFAULT now()
 );
 
--- 7. Indexes for common queries
+-- 7. Plaid account details (populated during sync)
+CREATE TABLE plaid_accounts (
+  account_id    text PRIMARY KEY,
+  plaid_item_id uuid REFERENCES plaid_items(id) ON DELETE CASCADE,
+  name          text,
+  mask          text,
+  type          text,
+  subtype       text
+);
+
+-- 9. Indexes for common queries
 CREATE INDEX idx_bank_transactions_date       ON bank_transactions(date);
 CREATE INDEX idx_bank_transactions_plaid_item ON bank_transactions(plaid_item_id);
 CREATE INDEX idx_receipts_match_status        ON receipts(match_status);

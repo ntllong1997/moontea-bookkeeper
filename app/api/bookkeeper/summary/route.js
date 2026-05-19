@@ -41,15 +41,22 @@ export async function GET() {
                     .gte('date', startOfMonth),
             ]);
 
-        const totalExpenses = (txResult.data || []).reduce(
-            (sum, t) => sum + Math.abs(t.amount),
-            0
+        // Exclude transfers/payments that would double-count credit card spending
+        const EXCLUDE_FROM_EXPENSES = new Set([
+            'Credit Card Payment', 'Deposit', 'Cash Deposit', 'Online Sales',
+            'Owner Withdraw', 'Other/Review',
+        ]);
+
+        const expenseTxs = (txResult.data || []).filter(
+            (t) => t.amount > 0 && !EXCLUDE_FROM_EXPENSES.has(t.custom_category)
         );
 
+        const totalExpenses = expenseTxs.reduce((sum, t) => sum + t.amount, 0);
+
         const categoryBreakdown = {};
-        for (const t of txResult.data || []) {
+        for (const t of expenseTxs) {
             const cat = t.custom_category || 'Uncategorized';
-            categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + Math.abs(t.amount);
+            categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + t.amount;
         }
         const topCategories = Object.entries(categoryBreakdown)
             .map(([category, total]) => ({ category, total }))

@@ -38,17 +38,10 @@ export async function POST(request) {
             );
         }
 
-        // Fetch image and convert to base64
-        const imageResp = await fetch(receipt.image_url);
-        if (!imageResp.ok) throw new Error('Failed to fetch receipt image.');
-        const imageBuffer = await imageResp.arrayBuffer();
-        const base64Image = Buffer.from(imageBuffer).toString('base64');
-        const contentType = imageResp.headers.get('content-type') || 'image/jpeg';
-
         // Claude vision OCR
         const message = await anthropic.messages.create({
             model: process.env.RECEIPT_OCR_MODEL || 'claude-haiku-4-5-20251001',
-            max_tokens: 1024,
+            max_tokens: 4096,
             messages: [
                 {
                     role: 'user',
@@ -56,9 +49,8 @@ export async function POST(request) {
                         {
                             type: 'image',
                             source: {
-                                type: 'base64',
-                                media_type: contentType,
-                                data: base64Image,
+                                type: 'url',
+                                url: receipt.image_url,
                             },
                         },
                         {
@@ -70,12 +62,12 @@ export async function POST(request) {
   "receipt_datetime": "ISO 8601 string — date and time of purchase, use T00:00:00 if no time visible",
   "payment_method_type": "visa|mastercard|amex|discover|cash|check|other",
   "payment_method_last4": "string — last 4 digits if card, else null",
-  "ai_confidence": number between 0 and 1,
-  "items": [
-    { "item_name": "string", "quantity": number, "unit_price": number, "line_total": number }
-  ]
+  "ai_confidence": number between 0 and 1
 }
-Rules: total_amount must be the final charged amount including tax/tip. Extract ALL line items. Discounts are negative. Return ONLY the JSON, no other text.`,
+Rules:
+- total_amount must be the final charged amount including tax/tip.
+- For receipt_datetime: read the date exactly as printed on the receipt. US receipts use MM/DD/YYYY or MM/DD/YY format — do NOT swap month and day. If the year is 2-digit, use the century that makes the date closest to today (${new Date().toISOString().split('T')[0]}).
+- Return ONLY raw JSON — no markdown, no code fences, no explanation.`,
                         },
                     ],
                 },
@@ -85,8 +77,10 @@ Rules: total_amount must be the final charged amount including tax/tip. Extract 
         const rawText = message.content[0].text.trim();
         let extraction;
         try {
-            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-            extraction = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+            const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/)
+                || rawText.match(/```(?:json)?\s*([\s\S]*)/)
+                || rawText.match(/(\{[\s\S]*\})/);
+            extraction = JSON.parse(jsonMatch ? jsonMatch[1] : rawText);
         } catch {
             throw new Error(`Failed to parse OCR response: ${rawText.slice(0, 200)}`);
         }
@@ -106,23 +100,6 @@ Rules: total_amount must be the final charged amount including tax/tip. Extract 
             .eq('id', receiptId);
 
         if (updateError) throw updateError;
-
-        await supabase.from('receipt_items').delete().eq('receipt_id', receiptId);
-
-        if (extraction.items?.length) {
-            const { error: insertError } = await supabase
-                .from('receipt_items')
-                .insert(
-                    extraction.items.map((item) => ({
-                        receipt_id: receiptId,
-                        item_name: item.item_name,
-                        quantity: item.quantity,
-                        unit_price: item.unit_price,
-                        line_total: item.line_total,
-                    }))
-                );
-            if (insertError) throw insertError;
-        }
 
         // Run auto-match after successful OCR
         await autoMatchReceipts(supabase);

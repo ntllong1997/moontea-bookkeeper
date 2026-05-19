@@ -18,7 +18,7 @@ export async function GET(request) {
 
         let query = supabase
             .from('bank_transactions')
-            .select('*')
+            .select('*, plaid_items(institution_name)')
             .order('date', { ascending: false });
 
         if (startDate) query = query.gte('date', startDate);
@@ -30,7 +30,42 @@ export async function GET(request) {
 
         const { data, error } = await query;
         if (error) throw error;
-        return NextResponse.json(data);
+
+        // Enrich with account mask
+        const accountIds = [...new Set((data || []).map((t) => t.account_id).filter(Boolean))];
+        let accountMap = {};
+        if (accountIds.length > 0) {
+            const { data: accounts } = await supabase
+                .from('plaid_accounts')
+                .select('account_id, mask, name')
+                .in('account_id', accountIds);
+            for (const a of accounts || []) {
+                accountMap[a.account_id] = { mask: a.mask, account_name: a.name };
+            }
+        }
+
+        // Fetch receipt image URLs for matched transactions
+        const receiptIds = [...new Set((data || []).map((t) => t.matched_receipt_id).filter(Boolean))];
+        let receiptMap = {};
+        if (receiptIds.length > 0) {
+            const { data: receipts } = await supabase
+                .from('receipts')
+                .select('id, image_url')
+                .in('id', receiptIds);
+            for (const r of receipts || []) {
+                receiptMap[r.id] = r.image_url;
+            }
+        }
+
+        const enriched = (data || []).map((t) => ({
+            ...t,
+            institution_name: t.plaid_items?.institution_name || null,
+            account_mask: accountMap[t.account_id]?.mask || null,
+            account_name: accountMap[t.account_id]?.account_name || null,
+            receipt_image_url: t.matched_receipt_id ? (receiptMap[t.matched_receipt_id] || null) : null,
+        }));
+
+        return NextResponse.json(enriched);
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

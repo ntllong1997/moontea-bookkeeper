@@ -1,27 +1,47 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download, Search } from 'lucide-react';
+import { ArrowLeft, Download, Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import TransactionRow from '@/components/bookkeeper/TransactionRow';
 import MatchPanel from '@/components/bookkeeper/MatchPanel';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
+
+function SortTh({ label, col, sortKey, sortDir, onSort, className = '' }) {
+    const active = sortKey === col;
+    const Icon = active ? (sortDir === 'asc' ? ChevronUp : ChevronDown) : ChevronsUpDown;
+    return (
+        <th className={`py-3 ${className}`}>
+            <button
+                onClick={() => onSort(col)}
+                className="flex items-center gap-1 hover:text-gray-800 transition-colors"
+            >
+                {label}
+                <Icon size={12} className={active ? 'text-gray-700' : 'text-gray-400'} />
+            </button>
+        </th>
+    );
+}
 
 function exportToCsv(transactions) {
     const headers = [
         'Date',
         'Merchant',
+        'Direction',
         'Amount',
+        'Account',
         'Category',
-        'Recurring',
         'Match Status',
         'Receipt ID',
     ];
     const rows = transactions.map((t) => [
         t.date,
         t.merchant_name || '',
+        t.amount < 0 ? 'In' : 'Out',
         Math.abs(t.amount).toFixed(2),
+        t.institution_name
+            ? `${t.institution_name}${t.account_mask ? ` ••${t.account_mask}` : ''}`
+            : t.account_mask ? `••${t.account_mask}` : '',
         t.custom_category || t.category?.[0] || '',
-        t.is_recurring ? 'Yes' : 'No',
         t.matched_receipt_id ? 'Matched' : 'Unmatched',
         t.matched_receipt_id || '',
     ]);
@@ -44,16 +64,17 @@ export default function TransactionsPage() {
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
     const [filterMatch, setFilterMatch] = useState('');
+    const [sortKey, setSortKey] = useState('date');
+    const [sortDir, setSortDir] = useState('desc');
+
+    const localDate = (d) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     const now = new Date();
     const [startDate, setStartDate] = useState(
-        new Date(now.getFullYear(), now.getMonth(), 1)
-            .toISOString()
-            .split('T')[0]
+        localDate(new Date(now.getFullYear(), now.getMonth(), 1))
     );
-    const [endDate, setEndDate] = useState(
-        now.toISOString().split('T')[0]
-    );
+    const [endDate, setEndDate] = useState(localDate(now));
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -73,6 +94,34 @@ export default function TransactionsPage() {
     useEffect(() => {
         load();
     }, [load]);
+
+    const toggleSort = (key) => {
+        if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+        else { setSortKey(key); setSortDir('asc'); }
+    };
+
+    const sorted = useMemo(() => {
+        const cmp = (a, b) => {
+            let av, bv;
+            if (sortKey === 'date') { av = a.date; bv = b.date; }
+            else if (sortKey === 'merchant') { av = (a.merchant_name || '').toLowerCase(); bv = (b.merchant_name || '').toLowerCase(); }
+            else if (sortKey === 'amount') { av = Math.abs(a.amount); bv = Math.abs(b.amount); }
+            else if (sortKey === 'category') { av = (a.custom_category || '').toLowerCase(); bv = (b.custom_category || '').toLowerCase(); }
+            else return 0;
+            if (av < bv) return sortDir === 'asc' ? -1 : 1;
+            if (av > bv) return sortDir === 'asc' ? 1 : -1;
+            return 0;
+        };
+        return [...transactions].sort(cmp);
+    }, [transactions, sortKey, sortDir]);
+
+    const applyRange = (range) => {
+        const n = new Date();
+        if (range === 'all') { setStartDate('2020-01-01'); setEndDate(localDate(n)); }
+        else if (range === 'month') { setStartDate(localDate(new Date(n.getFullYear(), n.getMonth(), 1))); setEndDate(localDate(n)); }
+        else if (range === 'last') { setStartDate(localDate(new Date(n.getFullYear(), n.getMonth() - 1, 1))); setEndDate(localDate(new Date(n.getFullYear(), n.getMonth(), 0))); }
+        else if (range === '90') { const d = new Date(n); d.setDate(d.getDate() - 90); setStartDate(localDate(d)); setEndDate(localDate(n)); }
+    };
 
     const handleCategoryChange = async (id, cat) => {
         await fetch(`/api/bookkeeper/transactions/${id}`, {
@@ -99,12 +148,22 @@ export default function TransactionsPage() {
                         Bank Transactions
                     </h1>
                     <button
-                        onClick={() => exportToCsv(transactions)}
+                        onClick={() => exportToCsv(sorted)}
                         className="flex items-center gap-1 rounded-xl border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
                     >
                         <Download size={14} />
                         Export CSV
                     </button>
+                </div>
+
+                {/* Quick date range */}
+                <div className="flex gap-2">
+                    {[['month','This Month'],['last','Last Month'],['90','Last 90 Days'],['all','All Time']].map(([v, label]) => (
+                        <button key={v} onClick={() => applyRange(v)}
+                            className="rounded-lg border px-3 py-1 text-xs text-gray-600 hover:bg-gray-100">
+                            {label}
+                        </button>
+                    ))}
                 </div>
 
                 {/* Filters */}
@@ -165,16 +224,17 @@ export default function TransactionsPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                    <th className="py-3 pl-4 pr-2">Date</th>
-                                    <th className="py-3 px-2">Merchant</th>
-                                    <th className="py-3 px-2 text-right">Amount</th>
-                                    <th className="py-3 px-2">Category</th>
+                                    <SortTh label="Date" col="date" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="pl-4 pr-2" />
+                                    <SortTh label="Merchant" col="merchant" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="px-2" />
+                                    <SortTh label="Amount" col="amount" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="px-2 text-right" />
+                                    <th className="py-3 px-2">Account</th>
+                                    <SortTh label="Category" col="category" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="px-2" />
                                     <th className="py-3 px-2">Status</th>
                                     <th className="py-3 pl-2 pr-4"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {transactions.map((tx) => (
+                                {sorted.map((tx) => (
                                     <TransactionRow
                                         key={tx.id}
                                         transaction={tx}

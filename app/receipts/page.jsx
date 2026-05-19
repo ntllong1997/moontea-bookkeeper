@@ -102,7 +102,7 @@ export default function ReceiptsPage() {
                         <div className="mt-4 space-y-1 text-sm text-gray-700">
                             <p><strong>Merchant:</strong> {viewTarget.location || '—'}</p>
                             <p><strong>Total:</strong> ${Number(viewTarget.total_amount || 0).toFixed(2)}</p>
-                            <p><strong>Date:</strong> {viewTarget.receipt_datetime ? new Date(viewTarget.receipt_datetime).toLocaleString() : '—'}</p>
+                            <p><strong>Date:</strong> {viewTarget.receipt_datetime ? viewTarget.receipt_datetime.slice(0, 10) : '—'}</p>
                             <p><strong>Payment:</strong> {viewTarget.payment_method_type || '—'} {viewTarget.payment_method_last4 ? `····${viewTarget.payment_method_last4}` : ''}</p>
                         </div>
                         {viewTarget.receipt_items?.length > 0 && (
