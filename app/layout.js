@@ -1,0 +1,31 @@
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { ModeProvider } from "@/components/bookkeeper/ModeProvider";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata = {
+  title: "Moon Tea Bookkeeper",
+  description: "Financial management for The Moon Tea",
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">
+        <ModeProvider>{children}</ModeProvider>
+      </body>
+    </html>
+  );
+}
