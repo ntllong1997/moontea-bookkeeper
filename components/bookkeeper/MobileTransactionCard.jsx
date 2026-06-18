@@ -41,7 +41,7 @@ export default function MobileTransactionCard({
                                     setEditingName(false);
                                 }
                             }}
-                            className="w-36 rounded-lg border px-2 py-0.5 text-sm outline-none focus:border-blue-400"
+                            className="w-36 rounded-lg border-2 border-blue-400 bg-white px-2 py-0.5 text-sm font-medium text-gray-900 outline-none"
                         />
                         <button onClick={commitName} className="text-green-600">
                             <Check size={14} />

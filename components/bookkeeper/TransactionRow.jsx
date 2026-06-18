@@ -45,7 +45,7 @@ export default function TransactionRow({
                             value={nameVal}
                             onChange={(e) => setNameVal(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') { setNameVal(transaction.merchant_name || ''); setEditingName(false); } }}
-                            className="rounded-lg border px-2 py-1 text-sm w-40 outline-none focus:border-blue-400"
+                            className="rounded-lg border-2 border-blue-400 bg-white px-2 py-1 text-sm font-medium text-gray-900 w-40 outline-none"
                         />
                         <button onClick={commitName} className="text-green-600 hover:text-green-700"><Check size={14} /></button>
                         <button onClick={() => { setNameVal(transaction.merchant_name || ''); setEditingName(false); }} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
@@ -76,7 +76,7 @@ export default function TransactionRow({
                 {editingCat ? (
                     <select
                         autoFocus
-                        className="rounded-lg border px-2 py-1 text-xs"
+                        className="rounded-lg border-2 border-blue-400 bg-white px-2 py-1 text-xs font-medium text-gray-900 outline-none"
                         defaultValue={transaction.custom_category || ''}
                         onChange={(e) => { setEditingCat(false); onCategoryChange?.(transaction.id, e.target.value); }}
                         onBlur={() => setEditingCat(false)}
