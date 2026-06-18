@@ -99,17 +99,6 @@ export default function TransactionsPage() {
         );
     };
 
-    const handleNotesChange = async (id, notes) => {
-        await fetch(`/api/bookkeeper/transactions/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notes }),
-        });
-        setTransactions((prev) =>
-            prev.map((t) => t.id === id ? { ...t, notes } : t)
-        );
-    };
-
     const handlePersonalToggle = async (id, isPersonal) => {
         await fetch(`/api/bookkeeper/transactions/${id}`, {
             method: 'PATCH',
@@ -219,7 +208,6 @@ export default function TransactionsPage() {
                                         transaction={tx}
                                         onCategoryChange={handleCategoryChange}
                                         onNameChange={handleNameChange}
-                                        onNotesChange={handleNotesChange}
                                         onLinkReceipt={setMatchTarget}
                                         onPersonalToggle={handlePersonalToggle}
                                     />

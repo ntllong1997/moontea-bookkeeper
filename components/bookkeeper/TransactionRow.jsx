@@ -7,15 +7,12 @@ export default function TransactionRow({
     transaction,
     onCategoryChange,
     onNameChange,
-    onNotesChange,
     onLinkReceipt,
     onPersonalToggle,
 }) {
     const [editingCat, setEditingCat] = useState(false);
     const [editingName, setEditingName] = useState(false);
-    const [editingNotes, setEditingNotes] = useState(false);
     const [nameVal, setNameVal] = useState(transaction.merchant_name || '');
-    const [notesVal, setNotesVal] = useState(transaction.notes || '');
 
     const matchColor = transaction.matched_receipt_id
         ? 'bg-green-100 text-green-700'
@@ -26,13 +23,6 @@ export default function TransactionRow({
         setEditingName(false);
         if (nameVal !== transaction.merchant_name) {
             await onNameChange?.(transaction.id, nameVal);
-        }
-    };
-
-    const commitNotes = async () => {
-        setEditingNotes(false);
-        if (notesVal !== transaction.notes) {
-            await onNotesChange?.(transaction.id, notesVal);
         }
     };
 
@@ -73,47 +63,6 @@ export default function TransactionRow({
                     </div>
                 )}
 
-                {/* Plaid categories as chips */}
-                {transaction.category?.length > 0 && (
-                    <div className="mt-0.5 flex flex-wrap gap-1">
-                        {transaction.category.slice(0, 2).map((c) => (
-                            <span key={c} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
-                                {c.replace(/_/g, ' ').toLowerCase()}
-                            </span>
-                        ))}
-                    </div>
-                )}
-
-                {/* Editable notes */}
-                {editingNotes ? (
-                    <div className="mt-1 flex items-center gap-1">
-                        <input
-                            autoFocus
-                            value={notesVal}
-                            onChange={(e) => setNotesVal(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') commitNotes(); if (e.key === 'Escape') { setNotesVal(transaction.notes || ''); setEditingNotes(false); } }}
-                            placeholder="Add note…"
-                            className="rounded-lg border px-2 py-0.5 text-xs w-40 outline-none focus:border-blue-400"
-                        />
-                        <button onClick={commitNotes} className="text-green-600 hover:text-green-700"><Check size={12} /></button>
-                        <button onClick={() => { setNotesVal(transaction.notes || ''); setEditingNotes(false); }} className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
-                    </div>
-                ) : (
-                    <div className="mt-0.5 group/notes flex items-center gap-1">
-                        {transaction.notes ? (
-                            <span className="text-xs text-gray-400 italic">{transaction.notes}</span>
-                        ) : (
-                            <span className="text-xs text-gray-300 opacity-0 group-hover/notes:opacity-100">+ add note</span>
-                        )}
-                        <button
-                            onClick={() => setEditingNotes(true)}
-                            className="opacity-0 group-hover/notes:opacity-100 text-gray-300 hover:text-gray-500 transition-opacity"
-                            title="Edit note"
-                        >
-                            <Pencil size={10} />
-                        </button>
-                    </div>
-                )}
             </td>
             <td className="py-3 px-2 text-right text-sm font-semibold text-gray-800 whitespace-nowrap">
                 ${Math.abs(transaction.amount).toFixed(2)}
