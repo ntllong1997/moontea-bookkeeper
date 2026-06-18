@@ -19,7 +19,7 @@ export async function GET(request) {
 
         let query = supabase
             .from('bank_transactions')
-            .select('*')
+            .select('*, receipts!matched_receipt_id(image_url)')
             .order('date', { ascending: false });
 
         if (startDate) query = query.gte('date', startDate);

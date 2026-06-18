@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Download, Search } from 'lucide-react';
 import TransactionRow from '@/components/bookkeeper/TransactionRow';
+import MobileTransactionCard from '@/components/bookkeeper/MobileTransactionCard';
 import TransactionUploadModal from '@/components/bookkeeper/TransactionUploadModal';
 import ModeToggle from '@/components/bookkeeper/ModeToggle';
 import { useMode } from '@/components/bookkeeper/ModeProvider';
@@ -185,43 +186,15 @@ export default function TransactionsPage() {
                         <p className="p-8 text-center text-sm text-gray-400">Loading…</p>
                     ) : transactions.length === 0 ? (
                         <p className="p-8 text-center text-sm text-gray-400">No transactions found.</p>
-                    ) : transactions.map((tx) => {
-                        const isIncoming = tx.amount < 0;
-                        const amountColor = isIncoming ? 'text-blue-600' : 'text-red-600';
-                        const amountDisplay = `${isIncoming ? '+' : ''}$${Math.abs(tx.amount).toFixed(2)}`;
-                        return (
-                            <div key={tx.id} className="flex items-center justify-between px-4 py-3 gap-3">
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs text-gray-400">{tx.date}</p>
-                                    <p className="text-sm font-medium text-gray-800 truncate">
-                                        {tx.merchant_name || '—'}
-                                        {tx.is_recurring && (
-                                            <span className="ml-1 rounded-full bg-purple-100 px-1.5 py-0.5 text-xs text-purple-600">recurring</span>
-                                        )}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <span className={`text-sm font-semibold ${amountColor}`}>{amountDisplay}</span>
-                                    {!tx.matched_receipt_id && (
-                                        <button
-                                            onClick={() => setUploadTarget(tx)}
-                                            className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                            Upload
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => handlePersonalToggle(tx.id, !tx.is_personal)}
-                                        title={tx.is_personal ? 'Marked personal' : 'Mark as personal'}
-                                        className={`rounded-lg border p-1.5 text-xs ${tx.is_personal ? 'border-purple-200 bg-purple-50 text-purple-600' : 'text-gray-400 hover:bg-gray-50'}`}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        );
-                    })}
+                    ) : transactions.map((tx) => (
+                        <MobileTransactionCard
+                            key={tx.id}
+                            transaction={tx}
+                            onNameChange={handleNameChange}
+                            onUploadReceipt={setUploadTarget}
+                            onPersonalToggle={handlePersonalToggle}
+                        />
+                    ))}
                 </div>
 
                 {/* Desktop table — hidden on mobile */}
