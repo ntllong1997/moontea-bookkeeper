@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { ChevronDown, Upload, Pencil, Check, X, User } from 'lucide-react';
+import { ChevronDown, Upload, ExternalLink, Pencil, Check, X, User } from 'lucide-react';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 
 export default function TransactionRow({
@@ -103,14 +103,26 @@ export default function TransactionRow({
             </td>
             <td className="py-3 pl-2 pr-4">
                 <div className="flex items-center gap-1">
-                    {!transaction.matched_receipt_id && (
-                        <button
-                            onClick={() => onUploadReceipt?.(transaction)}
-                            className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
-                        >
-                            <Upload size={12} />
-                            Upload
-                        </button>
+                    {!isIncoming && (
+                        transaction.matched_receipt_id && transaction.receipts?.image_url ? (
+                            <a
+                                href={transaction.receipts.image_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 rounded-lg border border-green-200 px-2 py-1 text-xs text-green-600 hover:bg-green-50"
+                            >
+                                <ExternalLink size={12} />
+                                Receipt
+                            </a>
+                        ) : !transaction.matched_receipt_id ? (
+                            <button
+                                onClick={() => onUploadReceipt?.(transaction)}
+                                className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+                            >
+                                <Upload size={12} />
+                                Upload
+                            </button>
+                        ) : null
                     )}
                     <button
                         onClick={() => onPersonalToggle?.(transaction.id, !transaction.is_personal)}
