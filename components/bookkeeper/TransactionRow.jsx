@@ -36,7 +36,7 @@ export default function TransactionRow({
             <td className="py-3 pl-4 pr-2 text-sm text-gray-500 whitespace-nowrap">
                 {transaction.date}
             </td>
-            <td className="py-3 px-2 min-w-[120px] sm:min-w-[180px]">
+            <td className="py-3 px-2 min-w-[180px]">
                 {/* Editable merchant name */}
                 {editingName ? (
                     <div className="flex items-center gap-1">
@@ -72,7 +72,7 @@ export default function TransactionRow({
             <td className={`py-3 px-2 text-right text-sm font-semibold whitespace-nowrap ${amountColor}`}>
                 {amountDisplay}
             </td>
-            <td className="hidden sm:table-cell py-3 px-2">
+            <td className="py-3 px-2">
                 {editingCat ? (
                     <select
                         autoFocus
@@ -96,7 +96,7 @@ export default function TransactionRow({
                     </button>
                 )}
             </td>
-            <td className="hidden sm:table-cell py-3 px-2">
+            <td className="py-3 px-2">
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${matchColor}`}>
                     {matchLabel}
                 </span>
