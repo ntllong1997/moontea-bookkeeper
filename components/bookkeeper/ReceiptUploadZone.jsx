@@ -67,7 +67,14 @@ export default function ReceiptUploadZone({ onUploaded }) {
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: { 'image/*': [], 'application/pdf': [] },
+        accept: {
+            'image/jpeg': ['.jpg', '.jpeg'],
+            'image/png': ['.png'],
+            'image/webp': ['.webp'],
+            'image/heic': ['.heic'],
+            'image/heif': ['.heif'],
+            'application/pdf': ['.pdf'],
+        },
         maxSize: 10 * 1024 * 1024,
     });
 

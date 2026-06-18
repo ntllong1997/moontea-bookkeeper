@@ -17,7 +17,14 @@ export default function TransactionUploadModal({ transaction, onClose, onUploade
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: { 'image/*': [], 'application/pdf': [] },
+        accept: {
+            'image/jpeg': ['.jpg', '.jpeg'],
+            'image/png': ['.png'],
+            'image/webp': ['.webp'],
+            'image/heic': ['.heic'],
+            'image/heif': ['.heif'],
+            'application/pdf': ['.pdf'],
+        },
         maxSize: 10 * 1024 * 1024,
         maxFiles: 1,
     });
@@ -32,7 +39,7 @@ export default function TransactionUploadModal({ transaction, onClose, onUploade
             form.append('file', file);
             if (merchant) form.append('location', merchant);
             if (amount) form.append('total_amount', amount);
-            if (date) form.append('receipt_datetime', `${date}T00:00:00`);
+            if (date) form.append('receipt_datetime', `${date}T00:00:00.000Z`);
 
             const uploadRes = await fetch('/api/receipts/upload', { method: 'POST', body: form });
             const uploadData = await uploadRes.json();
