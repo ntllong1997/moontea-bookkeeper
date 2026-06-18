@@ -101,6 +101,11 @@ export default function TransactionRow({
                     {matchLabel}
                 </span>
             </td>
+            <td className="py-3 px-2 text-xs text-gray-500 whitespace-nowrap">
+                {transaction.account
+                    ? `${transaction.account.name}${transaction.account.mask ? ` ••••${transaction.account.mask}` : ''}`
+                    : '—'}
+            </td>
             <td className="py-3 pl-2 pr-4">
                 <div className="flex items-center gap-1">
                     {!isIncoming && (

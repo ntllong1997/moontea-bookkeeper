@@ -212,6 +212,7 @@ export default function TransactionsPage() {
                                     <th className="py-3 px-2 text-right">Amount</th>
                                     <th className="py-3 px-2">Category</th>
                                     <th className="py-3 px-2">Status</th>
+                                    <th className="py-3 px-2">Account</th>
                                     <th className="py-3 pl-2 pr-4"></th>
                                 </tr>
                             </thead>

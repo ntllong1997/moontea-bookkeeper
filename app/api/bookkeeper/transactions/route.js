@@ -32,7 +32,22 @@ export async function GET(request) {
 
         const { data, error } = await query;
         if (error) throw error;
-        return NextResponse.json(data);
+
+        // Enrich with account name/mask from plaid_accounts
+        const accountIds = [...new Set(data.map((t) => t.account_id).filter(Boolean))];
+        const accountMap = {};
+        if (accountIds.length > 0) {
+            const { data: accounts } = await supabase
+                .from('plaid_accounts')
+                .select('account_id, name, mask')
+                .in('account_id', accountIds);
+            if (accounts) {
+                for (const a of accounts) accountMap[a.account_id] = a;
+            }
+        }
+
+        const enriched = data.map((t) => ({ ...t, account: accountMap[t.account_id] || null }));
+        return NextResponse.json(enriched);
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

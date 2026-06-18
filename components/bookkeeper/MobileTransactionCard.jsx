@@ -66,6 +66,12 @@ export default function MobileTransactionCard({
                         )}
                     </button>
                 )}
+                {transaction.account && (
+                    <p className="mt-0.5 text-xs text-gray-400">
+                        {transaction.account.name}
+                        {transaction.account.mask ? ` ••••${transaction.account.mask}` : ''}
+                    </p>
+                )}
             </div>
 
             {/* Right: amount + actions */}

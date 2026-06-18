@@ -70,6 +70,22 @@ export async function POST(request) {
                     .in('plaid_transaction_id', ids);
             }
 
+            // Upsert accounts for this item
+            const accountsResp = await plaidClient.accountsGet({ access_token: item.access_token });
+            const accountsToUpsert = accountsResp.data.accounts.map((a) => ({
+                account_id: a.account_id,
+                plaid_item_id: item.id,
+                name: a.name,
+                mask: a.mask,
+                type: a.type,
+                subtype: a.subtype,
+            }));
+            if (accountsToUpsert.length > 0) {
+                await supabase
+                    .from('plaid_accounts')
+                    .upsert(accountsToUpsert, { onConflict: 'account_id' });
+            }
+
             // Update cursor
             await supabase
                 .from('plaid_items')
