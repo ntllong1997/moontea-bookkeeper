@@ -27,20 +27,6 @@ export default function ReceiptUploadZone({ onUploaded }) {
 
                 setFiles((prev) =>
                     prev.map((f) =>
-                        f.id === id ? { ...f, status: 'processing' } : f
-                    )
-                );
-
-                const processRes = await fetch('/api/receipts/process', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ receipt_id: uploadData.receipt_id }),
-                });
-                const processData = await processRes.json();
-                if (!processRes.ok) throw new Error(processData.error);
-
-                setFiles((prev) =>
-                    prev.map((f) =>
                         f.id === id ? { ...f, status: 'done' } : f
                     )
                 );
@@ -79,7 +65,7 @@ export default function ReceiptUploadZone({ onUploaded }) {
     });
 
     const statusIcon = (status) => {
-        if (status === 'uploading' || status === 'processing')
+        if (status === 'uploading')
             return <Loader size={16} className="animate-spin text-blue-500" />;
         if (status === 'done')
             return <CheckCircle size={16} className="text-green-500" />;
@@ -87,8 +73,7 @@ export default function ReceiptUploadZone({ onUploaded }) {
     };
 
     const statusLabel = {
-        uploading: 'Scanning…',
-        processing: 'Analyzing…',
+        uploading: 'Uploading…',
         done: 'Done',
         error: 'Failed',
     };

@@ -60,13 +60,6 @@ export default function TransactionUploadModal({ transaction, onClose, onUploade
                 throw new Error(matchData.error);
             }
 
-            // Trigger AI processing in the background — don't wait for it
-            fetch('/api/receipts/process', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ receipt_id: uploadData.receipt_id }),
-            });
-
             setStatus('done');
             setTimeout(() => {
                 onUploaded?.();
