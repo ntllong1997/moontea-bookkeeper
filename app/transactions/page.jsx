@@ -196,8 +196,8 @@ export default function TransactionsPage() {
                                     <th className="py-3 pl-4 pr-2">Date</th>
                                     <th className="py-3 px-2">Merchant</th>
                                     <th className="py-3 px-2 text-right">Amount</th>
-                                    <th className="py-3 px-2">Category</th>
-                                    <th className="py-3 px-2">Status</th>
+                                    <th className="hidden sm:table-cell py-3 px-2">Category</th>
+                                    <th className="hidden sm:table-cell py-3 px-2">Status</th>
                                     <th className="py-3 pl-2 pr-4"></th>
                                 </tr>
                             </thead>
