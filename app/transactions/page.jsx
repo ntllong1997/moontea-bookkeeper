@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Download, Search } from 'lucide-react';
 import TransactionRow from '@/components/bookkeeper/TransactionRow';
-import MatchPanel from '@/components/bookkeeper/MatchPanel';
+import TransactionUploadModal from '@/components/bookkeeper/TransactionUploadModal';
 import ModeToggle from '@/components/bookkeeper/ModeToggle';
 import { useMode } from '@/components/bookkeeper/ModeProvider';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
@@ -42,7 +42,7 @@ function exportToCsv(transactions) {
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [matchTarget, setMatchTarget] = useState(null);
+    const [uploadTarget, setUploadTarget] = useState(null);
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
     const [filterMatch, setFilterMatch] = useState('');
@@ -208,7 +208,7 @@ export default function TransactionsPage() {
                                         transaction={tx}
                                         onCategoryChange={handleCategoryChange}
                                         onNameChange={handleNameChange}
-                                        onLinkReceipt={setMatchTarget}
+                                        onUploadReceipt={setUploadTarget}
                                         onPersonalToggle={handlePersonalToggle}
                                     />
                                 ))}
@@ -222,12 +222,11 @@ export default function TransactionsPage() {
                 </p>
             </div>
 
-            {matchTarget && (
-                <MatchPanel
-                    receipt={null}
-                    transaction={matchTarget}
-                    onClose={() => setMatchTarget(null)}
-                    onMatched={() => { setMatchTarget(null); load(); }}
+            {uploadTarget && (
+                <TransactionUploadModal
+                    transaction={uploadTarget}
+                    onClose={() => setUploadTarget(null)}
+                    onUploaded={() => { setUploadTarget(null); load(); }}
                 />
             )}
         </main>

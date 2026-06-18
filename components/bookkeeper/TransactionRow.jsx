@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { ChevronDown, Link2, Pencil, Check, X, User } from 'lucide-react';
+import { ChevronDown, Upload, Pencil, Check, X, User } from 'lucide-react';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 
 export default function TransactionRow({
     transaction,
     onCategoryChange,
     onNameChange,
-    onLinkReceipt,
+    onUploadReceipt,
     onPersonalToggle,
 }) {
     const [editingCat, setEditingCat] = useState(false);
@@ -100,11 +100,11 @@ export default function TransactionRow({
                 <div className="flex items-center gap-1">
                     {!transaction.matched_receipt_id && (
                         <button
-                            onClick={() => onLinkReceipt?.(transaction)}
+                            onClick={() => onUploadReceipt?.(transaction)}
                             className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
                         >
-                            <Link2 size={12} />
-                            Link
+                            <Upload size={12} />
+                            Upload
                         </button>
                     )}
                     <button

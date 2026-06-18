@@ -65,12 +65,19 @@ export async function POST(request) {
             scanPdfUrl = pdfUrlData.publicUrl;
         }
 
+        const prefillLocation = formData.get('location');
+        const prefillAmount = formData.get('total_amount');
+        const prefillDatetime = formData.get('receipt_datetime');
+
         const { data: receipt, error: insertError } = await supabase
             .from('receipts')
             .insert({
                 image_url: imageUrlData.publicUrl,
                 scan_pdf_url: scanPdfUrl,
                 ai_status: 'pending',
+                ...(prefillLocation && { location: prefillLocation }),
+                ...(prefillAmount && { total_amount: parseFloat(prefillAmount) }),
+                ...(prefillDatetime && { receipt_datetime: prefillDatetime }),
             })
             .select()
             .single();
