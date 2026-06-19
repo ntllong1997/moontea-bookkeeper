@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download, Search } from 'lucide-react';
+import { ArrowLeft, Download, Search, EyeOff, Eye } from 'lucide-react';
 import TransactionRow from '@/components/bookkeeper/TransactionRow';
 import MobileTransactionCard from '@/components/bookkeeper/MobileTransactionCard';
 import TransactionUploadModal from '@/components/bookkeeper/TransactionUploadModal';
@@ -47,6 +47,9 @@ export default function TransactionsPage() {
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
     const [filterMatch, setFilterMatch] = useState('');
+    const [personalHidden, setPersonalHidden] = useState(true);
+    const [leavingIds, setLeavingIds] = useState(new Set());
+    const [enteringIds, setEnteringIds] = useState(new Set());
 
     const now = new Date();
     const [startDate, setStartDate] = useState(
@@ -115,6 +118,30 @@ export default function TransactionsPage() {
         }
     };
 
+    const hidePersonal = () => {
+        const ids = transactions.filter((t) => t.is_personal).map((t) => t.id);
+        if (ids.length === 0) return;
+        setLeavingIds(new Set(ids));
+        setTimeout(() => {
+            setPersonalHidden(true);
+            setLeavingIds(new Set());
+        }, 300);
+    };
+
+    const showPersonal = () => {
+        const ids = transactions.filter((t) => t.is_personal).map((t) => t.id);
+        setPersonalHidden(false);
+        setEnteringIds(new Set(ids));
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => setEnteringIds(new Set()));
+        });
+    };
+
+    const personalCount = transactions.filter((t) => t.is_personal).length;
+    const visibleTransactions = transactions.filter(
+        (t) => !(personalHidden && t.is_personal)
+    );
+
     return (
         <main className="min-h-screen bg-gray-50">
             <div className="mx-auto max-w-5xl p-6 space-y-5">
@@ -127,6 +154,24 @@ export default function TransactionsPage() {
                         Bank Transactions
                     </h1>
                     <ModeToggle />
+                    {personalHidden ? (
+                        <button
+                            onClick={showPersonal}
+                            className="flex items-center gap-1 rounded-xl border px-3 py-2 text-sm text-purple-600 hover:bg-purple-50"
+                        >
+                            <Eye size={14} />
+                            Show Personal ({personalCount})
+                        </button>
+                    ) : (
+                        <button
+                            onClick={hidePersonal}
+                            disabled={personalCount === 0}
+                            className="flex items-center gap-1 rounded-xl border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <EyeOff size={14} />
+                            Hide Personal
+                        </button>
+                    )}
                     <button
                         onClick={() => exportToCsv(transactions)}
                         className="flex items-center gap-1 rounded-xl border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
@@ -184,15 +229,16 @@ export default function TransactionsPage() {
                 <div className="sm:hidden rounded-2xl border bg-white shadow-sm divide-y divide-gray-100">
                     {loading ? (
                         <p className="p-8 text-center text-sm text-gray-400">Loading…</p>
-                    ) : transactions.length === 0 ? (
+                    ) : visibleTransactions.length === 0 ? (
                         <p className="p-8 text-center text-sm text-gray-400">No transactions found.</p>
-                    ) : transactions.map((tx) => (
+                    ) : visibleTransactions.map((tx) => (
                         <MobileTransactionCard
                             key={tx.id}
                             transaction={tx}
                             onNameChange={handleNameChange}
                             onUploadReceipt={setUploadTarget}
                             onPersonalToggle={handlePersonalToggle}
+                            animState={leavingIds.has(tx.id) ? 'leaving' : enteringIds.has(tx.id) ? 'entering' : undefined}
                         />
                     ))}
                 </div>
@@ -201,7 +247,7 @@ export default function TransactionsPage() {
                 <div className="hidden sm:block rounded-2xl border bg-white shadow-sm overflow-x-auto">
                     {loading ? (
                         <p className="p-8 text-center text-sm text-gray-400">Loading…</p>
-                    ) : transactions.length === 0 ? (
+                    ) : visibleTransactions.length === 0 ? (
                         <p className="p-8 text-center text-sm text-gray-400">No transactions found.</p>
                     ) : (
                         <table className="w-full">
@@ -217,7 +263,7 @@ export default function TransactionsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {transactions.map((tx) => (
+                                {visibleTransactions.map((tx) => (
                                     <TransactionRow
                                         key={tx.id}
                                         transaction={tx}
@@ -225,6 +271,7 @@ export default function TransactionsPage() {
                                         onNameChange={handleNameChange}
                                         onUploadReceipt={setUploadTarget}
                                         onPersonalToggle={handlePersonalToggle}
+                                        animState={leavingIds.has(tx.id) ? 'leaving' : enteringIds.has(tx.id) ? 'entering' : undefined}
                                     />
                                 ))}
                             </tbody>
@@ -233,7 +280,7 @@ export default function TransactionsPage() {
                 </div>
 
                 <p className="text-xs text-gray-400 text-right">
-                    {transactions.length} transactions
+                    {visibleTransactions.length} transactions
                 </p>
             </div>
 

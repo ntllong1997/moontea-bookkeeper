@@ -81,9 +81,10 @@ export async function POST(request) {
                 subtype: a.subtype,
             }));
             if (accountsToUpsert.length > 0) {
-                await supabase
+                const { error: accountsError } = await supabase
                     .from('plaid_accounts')
                     .upsert(accountsToUpsert, { onConflict: 'account_id' });
+                if (accountsError) throw accountsError;
             }
 
             // Update cursor

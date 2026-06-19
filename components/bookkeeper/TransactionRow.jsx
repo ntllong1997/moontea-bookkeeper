@@ -3,12 +3,43 @@ import { useState } from 'react';
 import { ChevronDown, Upload, ExternalLink, Pencil, Check, X, User } from 'lucide-react';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 
+function shortAccount(account) {
+    const source = account.institution_name || account.name || '';
+    const words = source.split(/\s+/).filter((w) => /[a-zA-Z]/.test(w));
+    // If the name already starts with an acronym (e.g. "FNBO Direct"), use it as-is
+    // rather than re-abbreviating every word down to its first letter.
+    const firstWord = words[0] || '';
+    const abbrev = /^[A-Z]{2,}$/.test(firstWord)
+        ? firstWord.toLowerCase()
+        : words.map((w) => w[0].toLowerCase()).join('');
+    return account.mask ? `${abbrev}-${account.mask}` : abbrev;
+}
+
+const ACCOUNT_COLORS = [
+    'text-blue-600 bg-blue-50',
+    'text-green-600 bg-green-50',
+    'text-purple-600 bg-purple-50',
+    'text-orange-600 bg-orange-50',
+    'text-pink-600 bg-pink-50',
+    'text-teal-600 bg-teal-50',
+    'text-amber-600 bg-amber-50',
+    'text-indigo-600 bg-indigo-50',
+];
+
+function accountColor(account) {
+    const key = account.institution_name || account.name || '';
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
+    return ACCOUNT_COLORS[Math.abs(hash) % ACCOUNT_COLORS.length];
+}
+
 export default function TransactionRow({
     transaction,
     onCategoryChange,
     onNameChange,
     onUploadReceipt,
     onPersonalToggle,
+    animState,
 }) {
     const [editingCat, setEditingCat] = useState(false);
     const [editingName, setEditingName] = useState(false);
@@ -31,8 +62,13 @@ export default function TransactionRow({
         }
     };
 
+    const animClass =
+        animState === 'leaving' || animState === 'entering'
+            ? 'opacity-0 scale-95'
+            : 'opacity-100 scale-100';
+
     return (
-        <tr className="border-b last:border-0 hover:bg-gray-50 align-top">
+        <tr className={`border-b last:border-0 hover:bg-gray-50 align-top transition-all duration-300 ${animClass}`}>
             <td className="py-3 pl-4 pr-2 text-sm text-gray-500 whitespace-nowrap">
                 {transaction.date}
             </td>
@@ -101,10 +137,14 @@ export default function TransactionRow({
                     {matchLabel}
                 </span>
             </td>
-            <td className="py-3 px-2 text-xs text-gray-500 whitespace-nowrap">
-                {transaction.account
-                    ? `${transaction.account.name}${transaction.account.mask ? ` ••••${transaction.account.mask}` : ''}`
-                    : '—'}
+            <td className="py-3 px-2 whitespace-nowrap">
+                {transaction.account ? (
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${accountColor(transaction.account)}`}>
+                        {shortAccount(transaction.account)}
+                    </span>
+                ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                )}
             </td>
             <td className="py-3 pl-2 pr-4">
                 <div className="flex items-center gap-1">

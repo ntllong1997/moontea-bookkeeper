@@ -2,11 +2,42 @@
 import { useState } from 'react';
 import { Check, X, Upload, ExternalLink, User } from 'lucide-react';
 
+function shortAccount(account) {
+    const source = account.institution_name || account.name || '';
+    const words = source.split(/\s+/).filter((w) => /[a-zA-Z]/.test(w));
+    // If the name already starts with an acronym (e.g. "FNBO Direct"), use it as-is
+    // rather than re-abbreviating every word down to its first letter.
+    const firstWord = words[0] || '';
+    const abbrev = /^[A-Z]{2,}$/.test(firstWord)
+        ? firstWord.toLowerCase()
+        : words.map((w) => w[0].toLowerCase()).join('');
+    return account.mask ? `${abbrev}-${account.mask}` : abbrev;
+}
+
+const ACCOUNT_COLORS = [
+    'text-blue-600 bg-blue-50',
+    'text-green-600 bg-green-50',
+    'text-purple-600 bg-purple-50',
+    'text-orange-600 bg-orange-50',
+    'text-pink-600 bg-pink-50',
+    'text-teal-600 bg-teal-50',
+    'text-amber-600 bg-amber-50',
+    'text-indigo-600 bg-indigo-50',
+];
+
+function accountColor(account) {
+    const key = account.institution_name || account.name || '';
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
+    return ACCOUNT_COLORS[Math.abs(hash) % ACCOUNT_COLORS.length];
+}
+
 export default function MobileTransactionCard({
     transaction,
     onNameChange,
     onUploadReceipt,
     onPersonalToggle,
+    animState,
 }) {
     const [editingName, setEditingName] = useState(false);
     const [nameVal, setNameVal] = useState(transaction.merchant_name || '');
@@ -23,13 +54,18 @@ export default function MobileTransactionCard({
         }
     };
 
+    const animClass =
+        animState === 'leaving' || animState === 'entering'
+            ? 'opacity-0 scale-95 -translate-x-2'
+            : 'opacity-100 scale-100 translate-x-0';
+
     return (
-        <div className="flex items-center justify-between px-4 py-3 gap-3">
+        <div className={`flex items-center justify-between px-4 py-3 gap-3 transition-all duration-300 ${animClass}`}>
             {/* Left: date + editable merchant */}
-            <div className="min-w-0 flex-1">
-                <p className="text-xs text-gray-400">{transaction.date}</p>
+            <div className='min-w-0 flex-1'>
+                <p className='text-xs text-gray-400'>{transaction.date}</p>
                 {editingName ? (
-                    <div className="mt-0.5 flex items-center gap-1">
+                    <div className='mt-0.5 flex items-center gap-1'>
                         <input
                             autoFocus
                             value={nameVal}
@@ -41,14 +77,17 @@ export default function MobileTransactionCard({
                                     setEditingName(false);
                                 }
                             }}
-                            className="w-36 rounded-lg border-2 border-blue-400 bg-white px-2 py-0.5 text-sm font-medium text-gray-900 outline-none"
+                            className='w-36 rounded-lg border-2 border-blue-400 bg-white px-2 py-0.5 text-sm font-medium text-gray-900 outline-none'
                         />
-                        <button onClick={commitName} className="text-green-600">
+                        <button onClick={commitName} className='text-green-600'>
                             <Check size={14} />
                         </button>
                         <button
-                            onClick={() => { setNameVal(transaction.merchant_name || ''); setEditingName(false); }}
-                            className="text-gray-400"
+                            onClick={() => {
+                                setNameVal(transaction.merchant_name || '');
+                                setEditingName(false);
+                            }}
+                            className='text-gray-400'
                         >
                             <X size={14} />
                         </button>
@@ -56,36 +95,37 @@ export default function MobileTransactionCard({
                 ) : (
                     <button
                         onClick={() => setEditingName(true)}
-                        className="mt-0.5 text-left text-sm font-medium text-gray-800"
+                        className='mt-0.5 text-left text-sm font-medium text-gray-800'
                     >
                         {transaction.merchant_name || '—'}
                         {transaction.is_recurring && (
-                            <span className="ml-1 rounded-full bg-purple-100 px-1.5 py-0.5 text-xs text-purple-600">
+                            <span className='ml-1 rounded-full bg-purple-100 px-1.5 py-0.5 text-xs text-purple-600'>
                                 recurring
                             </span>
                         )}
                     </button>
                 )}
                 {transaction.account && (
-                    <p className="mt-0.5 text-xs text-gray-400">
-                        {transaction.account.name}
-                        {transaction.account.mask ? ` ••••${transaction.account.mask}` : ''}
-                    </p>
+                    <span className={`mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-xs font-medium ${accountColor(transaction.account)}`}>
+                        {shortAccount(transaction.account)}
+                    </span>
                 )}
             </div>
 
             {/* Right: amount + actions */}
-            <div className="flex shrink-0 items-center gap-2">
-                <span className={`text-sm font-semibold ${amountColor}`}>{amountDisplay}</span>
+            <div className='flex shrink-0 items-center gap-2'>
+                <span className={`text-sm font-semibold ${amountColor}`}>
+                    {amountDisplay}
+                </span>
 
                 {/* Receipt actions — only for outgoing money */}
-                {!isIncoming && (
-                    transaction.matched_receipt_id && receiptImageUrl ? (
+                {!isIncoming &&
+                    (transaction.matched_receipt_id && receiptImageUrl ? (
                         <a
                             href={receiptImageUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 rounded-lg border border-green-200 px-2 py-1 text-xs text-green-600 hover:bg-green-50"
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='flex items-center gap-1 rounded-lg border border-green-200 px-2 py-1 text-xs text-green-600 hover:bg-green-50'
                         >
                             <ExternalLink size={12} />
                             Receipt
@@ -93,17 +133,25 @@ export default function MobileTransactionCard({
                     ) : !transaction.matched_receipt_id ? (
                         <button
                             onClick={() => onUploadReceipt?.(transaction)}
-                            className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+                            className='flex items-center gap-1 rounded-lg border px-2 py-1 text-xs text-blue-600 hover:bg-blue-50'
                         >
                             <Upload size={12} />
                             Upload
                         </button>
-                    ) : null
-                )}
+                    ) : null)}
 
                 <button
-                    onClick={() => onPersonalToggle?.(transaction.id, !transaction.is_personal)}
-                    title={transaction.is_personal ? 'Marked personal — click to undo' : 'Mark as personal'}
+                    onClick={() =>
+                        onPersonalToggle?.(
+                            transaction.id,
+                            !transaction.is_personal,
+                        )
+                    }
+                    title={
+                        transaction.is_personal
+                            ? 'Marked personal — click to undo'
+                            : 'Mark as personal'
+                    }
                     className={`rounded-lg border p-1.5 ${
                         transaction.is_personal
                             ? 'border-purple-200 bg-purple-50 text-purple-600'

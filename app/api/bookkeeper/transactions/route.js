@@ -39,10 +39,13 @@ export async function GET(request) {
         if (accountIds.length > 0) {
             const { data: accounts } = await supabase
                 .from('plaid_accounts')
-                .select('account_id, name, mask')
+                .select('account_id, name, mask, plaid_items(institution_name)')
                 .in('account_id', accountIds);
             if (accounts) {
-                for (const a of accounts) accountMap[a.account_id] = a;
+                for (const a of accounts) accountMap[a.account_id] = {
+                    ...a,
+                    institution_name: a.plaid_items?.institution_name || null,
+                };
             }
         }
 
