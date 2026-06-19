@@ -62,8 +62,8 @@ export default function TransactionsPage() {
     );
     const { mode } = useMode();
 
-    const load = useCallback(async () => {
-        setLoading(true);
+    const load = useCallback(async ({ silent } = {}) => {
+        if (!silent) setLoading(true);
         try {
             const params = new URLSearchParams({ start: startDate, end: endDate, mode });
             if (filterCategory) params.set('category', filterCategory);
@@ -73,12 +73,28 @@ export default function TransactionsPage() {
             const data = await res.json();
             setTransactions(Array.isArray(data) ? data : []);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [startDate, endDate, filterCategory, filterMatch, search, mode]);
 
     useEffect(() => {
         load();
+    }, [load]);
+
+    // Pick up changes made elsewhere (other device, Plaid sync) without a manual reload.
+    useEffect(() => {
+        const interval = setInterval(() => load({ silent: true }), 30000);
+        const onFocus = () => load({ silent: true });
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') load({ silent: true });
+        };
+        window.addEventListener('focus', onFocus);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', onFocus);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
     }, [load]);
 
     const handleCategoryChange = async (id, cat) => {
